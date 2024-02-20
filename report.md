@@ -33,8 +33,8 @@ Choice of functions:
 
 ### Results
 
-1.
-2.
+1. 
+2. 49
 3.
 4.
 5. 44
