@@ -53,6 +53,9 @@ public class CoverageSummary {
         cs.checkCoverageFromFile("target/temp/coverage_importFromWkbPolygon.txt", 106, "importFromWkbPolygon");
         cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68, "tryFastIntersectPolylinePolygon");
         cs.checkCoverageFromFile("target/temp/coverage_intersectionWithAxis2D.txt", 14, "intersectionWithAxis2D");
+        cs.checkCoverageFromFile("target/temp/coverage_exportMultiPathToESRIShape.txt", 90, "exportMultiPathToESRIShape.txt");
+        cs.checkCoverageFromFile("target/temp/coverage_getAttributeAsDbl.txt", 8, "getAttributeAsDbl.txt");
+        //coverage_getAttributeAsDbl.txt
     }
 
 }
