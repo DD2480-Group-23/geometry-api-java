@@ -144,7 +144,7 @@ Report of new coverage: (on feat/improve-test-coverage branch)
 | 3                             | 60%        |           |                      |
 | 4                             | 91%        | -         | -                    |
 | 5                             | 57%        | -         | -                    |
-| intersectionWithAxis2D (Line) | 50%        | 79%       | 4                    |
+| intersectionWithAxis2D (Line) | 50%        | 86%       | 4                    |
 
 ## Overall experience
 
