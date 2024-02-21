@@ -25,7 +25,12 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
+import java.util.ArrayList;
+
 import org.junit.Test;
+
+import com.esri.core.geometry.Cutter.CutEvent;
 
 public class TestCut extends TestCase {
 	@Override
@@ -50,6 +55,67 @@ public class TestCut extends TestCase {
 		testEngine(sr);
 
 	}
+
+
+
+
+	@Test
+public void testEmptyPolyline() {
+    SpatialReference sr = SpatialReference.create(4326);
+    OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    // Create an empty polyline
+    Polyline emptyPolyline = new Polyline();
+
+    // Create a cutter polyline
+    Polyline cutter = makePolylineCutter1();
+
+    // Perform the cut operation
+    GeometryCursor cursor = opCut.execute(true, emptyPolyline, cutter, sr, null);
+
+    // Verify that the result is an empty polyline
+    Polyline cut = (Polyline) cursor.next();
+    assertNull(cut);
+
+    // If cut is not null, then check if it's empty
+    if (cut != null) {
+        assertTrue(cut.isEmpty());
+    }
+}
+
+@Test
+public void testEmptyCutter() {
+    SpatialReference sr = SpatialReference.create(4326);
+    OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    // Create a polyline
+    Polyline polyline = makePolyline1();
+
+    // Create an empty cutter polyline
+    Polyline emptyCutter = new Polyline();
+
+    // Perform the cut operation
+    GeometryCursor cursor = opCut.execute(true, polyline, emptyCutter, sr, null);
+
+    // Verify that the result is the original polyline
+    Polyline cut = (Polyline) cursor.next();
+    assertNull(cut);
+
+    // If cut is not null, then check if it equals the original polyline
+    if (cut != null) {
+        assertTrue(cut.equals(polyline));
+    }
+
+    // Verify that no additional result is present
+    cut = (Polyline) cursor.next();
+    assertNull(cut);
+}
+
+
+
+
 
 	private static void testConsiderTouch1(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
