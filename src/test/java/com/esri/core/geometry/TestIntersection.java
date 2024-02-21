@@ -27,6 +27,7 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.esri.core.geometry.PolygonUtils.PiPResult;
 
@@ -731,6 +732,77 @@ public class TestIntersection extends TestCase {
 			Polyline res = (Polyline) (geom);
 			assertTrue(!res.isEmpty());
 		}
+	}
+	@Test
+	public void testPointGetAttributeAsDblReturnsCorrectZPosition(){
+		Point res = new Point(1, 51.2, 20);
+		assertEquals(20.0, res.getAttributeAsDbl(VertexDescription.Semantics.Z, 0));
+	}
+
+	@Test
+	public void testPointPolyLineIntersectionThrowsException(){
+		Polyline polyline = new Polyline();
+		polyline.startPath(0, 0);
+		polyline.lineTo(0, 10);
+		polyline.lineTo(20, 10);
+		polyline.lineTo(20, 0);
+		Point p_1 = new Point(0, 5, 7);
+		// OperatorFactoryLocal projEnv = OperatorFactoryLocal.getInstance();
+		OperatorIntersection operatorIntersection = (OperatorIntersection) projEnv
+				.getOperator(Operator.Type.Intersection);
+		Geometry geom = operatorIntersection.execute(polyline, p_1, null,
+				null);
+		Point res = (Point) geom;
+		Point2D pt_1 = res.getXY();
+		assertTrue(Point2D.distance(pt_1, new Point2D(0, 5)) < 1e-10);
+		try{
+			res.getAttributeAsDbl(VertexDescription.Semantics.Z, 2);
+			fail();
+		}
+		catch(IndexOutOfBoundsException e){
+			//Exception caught, test passes
+		}
+	}
+
+	@Test
+	public void testPointPolylineIntersectionThrowsExceptionIfSemanticsIsPosition(){
+		Polyline polyline = new Polyline();
+		polyline.startPath(0, 0);
+		polyline.lineTo(0, 10);
+		polyline.lineTo(20, 10);
+		polyline.lineTo(20, 0);
+		Point p_1 = new Point(0, 5, 7);
+		// OperatorFactoryLocal projEnv = OperatorFactoryLocal.getInstance();
+		OperatorIntersection operatorIntersection = (OperatorIntersection) projEnv
+				.getOperator(Operator.Type.Intersection);
+		Geometry geom = operatorIntersection.execute(polyline, p_1, null,
+				null);
+		Point res = (Point) geom;
+		Point2D pt_1 = res.getXY();
+		assertTrue(Point2D.distance(pt_1, new Point2D(0, 5)) < 1e-10);
+		try{
+			res.getAttributeAsDbl(VertexDescription.Semantics.POSITION, 2);
+			fail();
+		}
+		catch(IndexOutOfBoundsException e){
+			//Exception caught, test passes
+		}
+	}
+	
+	@Test
+	public void testGetAttributeAsDblReturnsCorrectZPosition(){
+		System.out.println("Jaghatar mitt liv: ");
+		Polyline polyline = new Polyline();
+		polyline.startPath(0, 0);
+		polyline.lineTo(0, 10);
+		polyline.lineTo(20, 10);
+		polyline.lineTo(20, 0);
+		Point p3 = new Point(1, 5, 34);
+		OperatorDifference operatorDiff = (OperatorDifference) projEnv
+				.getOperator(Operator.Type.Difference);
+		Geometry geom = operatorDiff.execute(p3, polyline, null,null);
+		Point res = (Point) geom;
+		assertEquals(34.0, res.getAttributeAsDbl(VertexDescription.Semantics.Z, 0));
 	}
 
 	@Test
