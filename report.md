@@ -145,6 +145,8 @@ Report of new coverage: (on feat/improve-test-coverage branch)
 | 4                             | 91%        | -         | -                    |
 | 5                             | 57%        | -         | -                    |
 | intersectionWithAxis2D (Line) | 50%        | 86%       | 4                    |
+| getAttributeAsDbl (Point)     | 75%        | 100%      | 4                    |
+
 
 ## Overall experience
 
