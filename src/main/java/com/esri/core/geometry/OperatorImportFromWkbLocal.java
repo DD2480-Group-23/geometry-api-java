@@ -399,10 +399,172 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		}
 	}
 
+	private static int[] findTotalPointAndPartCount(int offset, int polygonCount, boolean bZs, boolean bMs,
+			WkbHelper wkbHelper) {
+		int point_count = 0;
+		int partCount = 0;
+		int tempOffset = offset;
+		for (int ipolygon = 0; ipolygon < polygonCount; ipolygon++) {
+			tempOffset += 5; // skip redundant byte order and type fields
+			int ipartcount = wkbHelper.getInt(tempOffset);
+			tempOffset += 4;
+
+			for (int ipart = 0; ipart < ipartcount; ipart++) {
+				int ipointcount = wkbHelper.getInt(tempOffset);
+				tempOffset += 4;
+
+				// If ipointcount == 0, then we have an empty part
+				if (ipointcount == 0) {
+					continue;
+				}
+
+				if (ipointcount <= 2) {
+					tempOffset += ipointcount * 2 * 8;
+
+					if (bZs) {
+						tempOffset += ipointcount * 8;
+					}
+					if (bMs) {
+						tempOffset += ipointcount * 8;
+					}
+					if (ipointcount == 1) {
+						point_count += ipointcount + 1;
+					} else {
+						point_count += ipointcount;
+					}
+					partCount++;
+
+					continue;
+				}
+
+				double startx = wkbHelper.getDouble(tempOffset);
+				tempOffset += 8;
+				double starty = wkbHelper.getDouble(tempOffset);
+				tempOffset += 8;
+				double startz = NumberUtils.TheNaN;
+				double startm = NumberUtils.TheNaN;
+
+				if (bZs) {
+					startz = wkbHelper.getDouble(tempOffset);
+					tempOffset += 8;
+				}
+				if (bMs) {
+					startm = wkbHelper.getDouble(tempOffset);
+					tempOffset += 8;
+				}
+
+				tempOffset += (ipointcount - 2) * 2 * 8;
+
+				if (bZs) {
+					tempOffset += (ipointcount - 2) * 8;
+				}
+				if (bMs) {
+					tempOffset += (ipointcount - 2) * 8;
+				}
+				double endx = wkbHelper.getDouble(tempOffset);
+				tempOffset += 8;
+				double endy = wkbHelper.getDouble(tempOffset);
+				tempOffset += 8;
+				double endz = NumberUtils.TheNaN;
+				double endm = NumberUtils.TheNaN;
+
+				if (bZs) {
+					endz = wkbHelper.getDouble(tempOffset);
+					tempOffset += 8;
+				}
+				if (bMs) {
+					endm = wkbHelper.getDouble(tempOffset);
+					tempOffset += 8;
+				}
+
+				if ((startx == endx || (NumberUtils.isNaN(startx) && NumberUtils
+						.isNaN(endx)))
+						&& (starty == endy || (NumberUtils.isNaN(starty) && NumberUtils
+								.isNaN(endy)))
+						&& (!bZs || startz == endz || (NumberUtils
+								.isNaN(startz) && NumberUtils.isNaN(endz)))
+						&& (!bMs || startm == endm || (NumberUtils
+								.isNaN(startm) && NumberUtils.isNaN(endm)))) {
+					point_count += ipointcount - 1;
+				} else {
+					point_count += ipointcount;
+				}
+				partCount++;
+			}
+		}
+		int[] returnArray = { point_count, partCount };
+		return returnArray;
+	}
+
+	public static int[] checkStartEqualsEnd(int tempOffset, int ipointcount, int ipartend, boolean bSkipLastPoint,
+			boolean bZs, boolean bMs,
+			WkbHelper wkbHelper) {
+
+		double startx = wkbHelper.getDouble(tempOffset);
+		tempOffset += 8;
+		double starty = wkbHelper.getDouble(tempOffset);
+		tempOffset += 8;
+		double startz = NumberUtils.TheNaN;
+		double startm = NumberUtils.TheNaN;
+
+		if (bZs) {
+			startz = wkbHelper.getDouble(tempOffset);
+			tempOffset += 8;
+		}
+		if (bMs) {
+			startm = wkbHelper.getDouble(tempOffset);
+			tempOffset += 8;
+		}
+
+		tempOffset += (ipointcount - 2) * 2 * 8;
+
+		if (bZs) {
+			tempOffset += (ipointcount - 2) * 8;
+		}
+		if (bMs) {
+			tempOffset += (ipointcount - 2) * 8;
+		}
+		double endx = wkbHelper.getDouble(tempOffset);
+		tempOffset += 8;
+		double endy = wkbHelper.getDouble(tempOffset);
+		tempOffset += 8;
+		double endz = NumberUtils.TheNaN;
+		double endm = NumberUtils.TheNaN;
+
+		if (bZs) {
+			endz = wkbHelper.getDouble(tempOffset);
+			tempOffset += 8;
+		}
+		if (bMs) {
+			endm = wkbHelper.getDouble(tempOffset);
+			tempOffset += 8;
+		}
+
+		if ((startx == endx || (NumberUtils.isNaN(startx) && NumberUtils
+				.isNaN(endx)))
+				&& (starty == endy || (NumberUtils.isNaN(starty) && NumberUtils
+						.isNaN(endy)))
+				&& (!bZs || startz == endz || (NumberUtils
+						.isNaN(startz) && NumberUtils.isNaN(endz)))
+				&& (!bMs || startm == endm || (NumberUtils
+						.isNaN(startm) && NumberUtils.isNaN(endm)))) {
+			ipartend--;
+		} else {
+			bSkipLastPoint = false;
+		}
+		int[] returnArray = { ipartend, (bSkipLastPoint ? 1 : 0) };
+		return returnArray;
+	}
+
 	// ----------------- Cyclomatic Complexity Count --------------------
-	// Decisions: If: 48, ?: 0, For: 6, While: 0, ||: 12, &&: 14, case: 0 = 80
+	// Before Refactoring: 81 (both Lizard and manual count)
+	// After refactoring:
+	// Lizard: 34
+	// Manual Count:
+	// Decisions: If: 29, ?: 0, For: 4, While: 0, ||: 0, &&: 0, case: 0 = 33
 	// Exit points: return: 1, throw: 0
-	// CC: 80 - 1 + 2 = 81
+	// CC: 33 - 1 + 2 = 34
+	// Improvement: 58%
 	private static Geometry importFromWkbPolygon(boolean bMultiPolygon,
 			int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
 		coverageHelper("0");
@@ -420,127 +582,9 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		}
 
 		// Find total point count and part count
-		int point_count = 0;
-		int partCount = 0;
-		int tempOffset = offset;
-		for (int ipolygon = 0; ipolygon < polygonCount; ipolygon++) {
-			coverageHelper("3");
-			tempOffset += 5; // skip redundant byte order and type fields
-			int ipartcount = wkbHelper.getInt(tempOffset);
-			tempOffset += 4;
-
-			for (int ipart = 0; ipart < ipartcount; ipart++) {
-				coverageHelper("5");
-				int ipointcount = wkbHelper.getInt(tempOffset);
-				tempOffset += 4;
-
-				// If ipointcount == 0, then we have an empty part
-				if (ipointcount == 0) {
-					coverageHelper("6");
-					continue;
-				} else
-					coverageHelper("7");
-
-				if (ipointcount <= 2) {
-					coverageHelper("8");
-					tempOffset += ipointcount * 2 * 8;
-
-					if (bZs) {
-						coverageHelper("10");
-						tempOffset += ipointcount * 8;
-					} else
-						coverageHelper("11");
-					if (bMs) {
-						coverageHelper("12");
-						tempOffset += ipointcount * 8;
-					} else
-						coverageHelper("13");
-					if (ipointcount == 1) {
-						coverageHelper("14");
-						point_count += ipointcount + 1;
-					} else {
-						coverageHelper("15");
-						point_count += ipointcount;
-					}
-					partCount++;
-
-					continue;
-				} else
-					coverageHelper("9");
-
-				double startx = wkbHelper.getDouble(tempOffset);
-				tempOffset += 8;
-				double starty = wkbHelper.getDouble(tempOffset);
-				tempOffset += 8;
-				double startz = NumberUtils.TheNaN;
-				double startm = NumberUtils.TheNaN;
-
-				if (bZs) {
-					coverageHelper("16");
-					startz = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-				} else
-					coverageHelper("17");
-
-				if (bMs) {
-					coverageHelper("18");
-					startm = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-				} else
-					coverageHelper("19");
-
-				tempOffset += (ipointcount - 2) * 2 * 8;
-
-				if (bZs) {
-					coverageHelper("20");
-					tempOffset += (ipointcount - 2) * 8;
-				} else
-					coverageHelper("21");
-				if (bMs) {
-					coverageHelper("22");
-					tempOffset += (ipointcount - 2) * 8;
-				} else
-					coverageHelper("23");
-				double endx = wkbHelper.getDouble(tempOffset);
-				tempOffset += 8;
-				double endy = wkbHelper.getDouble(tempOffset);
-				tempOffset += 8;
-				double endz = NumberUtils.TheNaN;
-				double endm = NumberUtils.TheNaN;
-
-				if (bZs) {
-					coverageHelper("24");
-					endz = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-				} else
-					coverageHelper("25");
-
-				if (bMs) {
-					coverageHelper("26");
-					endm = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-				} else
-					coverageHelper("27");
-
-				if ((startx == endx || (NumberUtils.isNaN(startx) && NumberUtils
-						.isNaN(endx)))
-						&& (starty == endy || (NumberUtils.isNaN(starty) && NumberUtils
-								.isNaN(endy)))
-						&& (!bZs || startz == endz || (NumberUtils
-								.isNaN(startz) && NumberUtils.isNaN(endz)))
-						&& (!bMs || startm == endm || (NumberUtils
-								.isNaN(startm) && NumberUtils.isNaN(endm)))) {
-					coverageHelper("28");
-					point_count += ipointcount - 1;
-				} else {
-					coverageHelper("29");
-					point_count += ipointcount;
-				}
-
-				partCount++;
-			}
-		}
-		coverageHelper("4");
+		int[] return_array = findTotalPointAndPartCount(offset, polygonCount, bZs, bMs, wkbHelper);
+		int point_count = return_array[0];
+		int partCount = return_array[1];
 
 		AttributeStreamOfDbl position = null;
 		AttributeStreamOfDbl zs = null;
@@ -555,17 +599,17 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		polygon = (MultiPathImpl) newPolygon._getImpl();
 
 		if (bZs) {
-			coverageHelper("30");
+			coverageHelper("3");
 			polygon.addAttribute(VertexDescription.Semantics.Z);
 		} else
-			coverageHelper("31");
+			coverageHelper("4");
 		if (bMs) {
-			coverageHelper("32");
+			coverageHelper("5");
 			polygon.addAttribute(VertexDescription.Semantics.M);
 		} else
-			coverageHelper("33");
+			coverageHelper("6");
 		if (point_count > 0) {
-			coverageHelper("34");
+			coverageHelper("7");
 			parts = (AttributeStreamOfInt32) (AttributeStreamBase
 					.createIndexStream(partCount + 1, 0));
 			pathFlags = (AttributeStreamOfInt8) (AttributeStreamBase
@@ -575,21 +619,21 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 							VertexDescription.Semantics.POSITION, point_count));
 
 			if (bZs) {
-				coverageHelper("36");
+				coverageHelper("8");
 				zs = (AttributeStreamOfDbl) (AttributeStreamBase
 						.createAttributeStreamWithSemantics(
 								VertexDescription.Semantics.Z, point_count));
 			} else
-				coverageHelper("37");
+				coverageHelper("9");
 			if (bMs) {
-				coverageHelper("38");
+				coverageHelper("10");
 				ms = (AttributeStreamOfDbl) (AttributeStreamBase
 						.createAttributeStreamWithSemantics(
 								VertexDescription.Semantics.M, point_count));
 			} else
-				coverageHelper("39");
+				coverageHelper("11");
 		} else
-			coverageHelper("35");
+			coverageHelper("12");
 
 		boolean bCreateMs = false, bCreateZs = false;
 		int ipartend = 0;
@@ -597,8 +641,9 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		int part_index = 0;
 
 		// read Coordinates
+
 		for (int ipolygon = 0; ipolygon < polygonCount; ipolygon++) {
-			coverageHelper("40");
+			coverageHelper("13");
 			offset += 5; // skip redundant byte order and type fields
 			int ipartcount = wkbHelper.getInt(offset);
 			offset += 4;
@@ -606,115 +651,48 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 			ipolygonend = ipolygonstart + ipartcount;
 
 			for (int ipart = ipolygonstart; ipart < ipolygonend; ipart++) {
-				coverageHelper("42");
+				coverageHelper("14");
 				int ipointcount = wkbHelper.getInt(offset);
 				offset += 4;
 
 				if (ipointcount == 0) {
-					coverageHelper("44");
+					coverageHelper("15");
 					continue;
 				} else
-					coverageHelper("45");
+					coverageHelper("16");
 				int ipartstart = ipartend;
 				ipartend += ipointcount;
 				boolean bSkipLastPoint = true;
 
 				if (ipointcount == 1) {
-					coverageHelper("46");
+					coverageHelper("17");
 					ipartstart++;
 					ipartend++;
 					bSkipLastPoint = false;
 				} else if (ipointcount == 2) {
-					coverageHelper("47");
+					coverageHelper("18");
 					bSkipLastPoint = false;
 				} else {
-					coverageHelper("48");
+					coverageHelper("19");
 					// Check if start point is equal to end point
-
-					tempOffset = offset;
-
-					double startx = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-					double starty = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-					double startz = NumberUtils.TheNaN;
-					double startm = NumberUtils.TheNaN;
-
-					if (bZs) {
-						coverageHelper("49");
-						startz = wkbHelper.getDouble(tempOffset);
-						tempOffset += 8;
-					} else
-						coverageHelper("50");
-
-					if (bMs) {
-						coverageHelper("51");
-						startm = wkbHelper.getDouble(tempOffset);
-						tempOffset += 8;
-					} else
-						coverageHelper("52");
-
-					tempOffset += (ipointcount - 2) * 2 * 8;
-
-					if (bZs) {
-						coverageHelper("53");
-						tempOffset += (ipointcount - 2) * 8;
-					} else
-						coverageHelper("54");
-					if (bMs) {
-						coverageHelper("55");
-						tempOffset += (ipointcount - 2) * 8;
-					} else
-						coverageHelper("56");
-					double endx = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-					double endy = wkbHelper.getDouble(tempOffset);
-					tempOffset += 8;
-					double endz = NumberUtils.TheNaN;
-					double endm = NumberUtils.TheNaN;
-
-					if (bZs) {
-						coverageHelper("57");
-						endz = wkbHelper.getDouble(tempOffset);
-						tempOffset += 8;
-					} else
-						coverageHelper("58");
-
-					if (bMs) {
-						coverageHelper("59");
-						endm = wkbHelper.getDouble(tempOffset);
-						tempOffset += 8;
-					} else
-						coverageHelper("60");
-
-					if ((startx == endx || (NumberUtils.isNaN(startx) && NumberUtils
-							.isNaN(endx)))
-							&& (starty == endy || (NumberUtils.isNaN(starty) && NumberUtils
-									.isNaN(endy)))
-							&& (!bZs || startz == endz || (NumberUtils
-									.isNaN(startz) && NumberUtils.isNaN(endz)))
-							&& (!bMs || startm == endm || (NumberUtils
-									.isNaN(startm) && NumberUtils.isNaN(endm)))) {
-						coverageHelper("61");
-						ipartend--;
-					} else {
-						coverageHelper("62");
-						bSkipLastPoint = false;
-					}
+					int[] returnArray = checkStartEqualsEnd(offset, ipointcount, ipartend, bSkipLastPoint, bZs, bMs,
+							wkbHelper);
+					ipartend = returnArray[0];
+					bSkipLastPoint = (returnArray[1] == 1);
 				}
 
 				if (ipart == ipolygonstart) {
-					coverageHelper("63");
+					coverageHelper("20");
 					pathFlags.setBits(ipart,
 							(byte) PathFlags.enumOGCStartPolygon);
 				} else
-					coverageHelper("64");
+					coverageHelper("21");
 				parts.write(++part_index, ipartend);
 
 				// We must write from the buffer backwards - ogc polygon
 				// format is opposite of shapefile format
 				for (int i = ipartstart; i < ipartend; i++) {
-					coverageHelper("65");
+					coverageHelper("22");
 					double x = wkbHelper.getDouble(offset);
 					offset += 8;
 					double y = wkbHelper.getDouble(offset);
@@ -724,110 +702,110 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 					position.write(2 * i + 1, y);
 
 					if (bZs) {
-						coverageHelper("67");
+						coverageHelper("23");
 						double z = wkbHelper.getDouble(offset);
 						offset += 8;
 
 						zs.write(i, z);
 						if (!VertexDescription.isDefaultValue(
 								VertexDescription.Semantics.Z, z)) {
-							coverageHelper("69");
+							coverageHelper("24");
 							bCreateZs = true;
 						} else
-							coverageHelper("70");
+							coverageHelper("25");
 					} else
-						coverageHelper("68");
+						coverageHelper("26");
 
 					if (bMs) {
-						coverageHelper("71");
+						coverageHelper("27");
 						double m = wkbHelper.getDouble(offset);
 						offset += 8;
 
 						ms.write(i, m);
 						if (!VertexDescription.isDefaultValue(
 								VertexDescription.Semantics.M, m)) {
-							coverageHelper("73");
+							coverageHelper("28");
 							bCreateMs = true;
 						} else
-							coverageHelper("74");
+							coverageHelper("29");
 					} else
-						coverageHelper("72");
+						coverageHelper("30");
 				}
-				coverageHelper("66");
+				coverageHelper("31");
 
 				if (bSkipLastPoint) {
-					coverageHelper("75");
+					coverageHelper("32");
 					offset += 2 * 8;
 
 					if (bZs) {
-						coverageHelper("78");
+						coverageHelper("33");
 						offset += 8;
 					} else
-						coverageHelper("79");
+						coverageHelper("34");
 					if (bMs) {
-						coverageHelper("80");
+						coverageHelper("35");
 						offset += 8;
 					} else
-						coverageHelper("81");
+						coverageHelper("36");
 				} else if (ipointcount == 1) {
-					coverageHelper("76");
+					coverageHelper("37");
 					double x = position.read(2 * ipartstart);
 					double y = position.read(2 * ipartstart + 1);
 					position.write(2 * (ipartstart - 1), x);
 					position.write(2 * (ipartstart - 1) + 1, y);
 
 					if (bZs) {
-						coverageHelper("82");
+						coverageHelper("38");
 						double z = zs.read(ipartstart);
 						zs.write(ipartstart - 1, z);
 					} else
-						coverageHelper("83");
+						coverageHelper("39");
 
 					if (bMs) {
-						coverageHelper("84");
+						coverageHelper("40");
 						double m = ms.read(ipartstart);
 						ms.write(ipartstart - 1, m);
 					} else
-						coverageHelper("85");
+						coverageHelper("41");
 				} else
-					coverageHelper("77");
+					coverageHelper("42");
 			}
 			coverageHelper("43");
 		}
-		coverageHelper("41");
+		coverageHelper("44");
 
 		// set envelopes and assign AttributeStreams
 
 		if (point_count > 0) {
-			coverageHelper("86");
+			coverageHelper("45");
 			polygon.setPathStreamRef(parts); // sets m_parts
 			polygon.setPathFlagsStreamRef(pathFlags);
 			polygon.setAttributeStreamRef(VertexDescription.Semantics.POSITION,
 					position);
 
 			if (bZs) {
-				coverageHelper("88");
+				coverageHelper("46");
 				if (!bCreateZs) {
-					coverageHelper("90");
+					coverageHelper("47");
 					zs = null;
 				} else
-					coverageHelper("91");
+					coverageHelper("48");
 
 				polygon.setAttributeStreamRef(VertexDescription.Semantics.Z, zs);
 			} else
-				coverageHelper("89");
+				coverageHelper("49");
 
 			if (bMs) {
-				coverageHelper("92");
+				coverageHelper("50");
 				if (!bCreateMs) {
-					coverageHelper("94");
+					coverageHelper("51");
 					ms = null;
 				} else
-					coverageHelper("95");
+					coverageHelper("52");
 
 				polygon.setAttributeStreamRef(VertexDescription.Semantics.M, ms);
 			} else
-				coverageHelper("93");
+				coverageHelper("53");
 
 			polygon.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);
 
@@ -835,39 +813,39 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 					pathFlags);
 
 			for (int i = 0; i < path_flags_clone.size() - 1; i++) {
-				coverageHelper("96");
+				coverageHelper("54");
 				if (((int) path_flags_clone.read(i) & (int) PathFlags.enumOGCStartPolygon) != 0) {// Should
 																									// be
 																									// clockwise
-					coverageHelper("98");
+					coverageHelper("55");
 					if (!InternalUtils.isClockwiseRing(polygon, i)) {
-						coverageHelper("100");
+						coverageHelper("56");
 						polygon.reversePath(i);
 					} // make clockwise
 					else
-						coverageHelper("101");
+						coverageHelper("57");
 				} else {// Should be counter-clockwise
-					coverageHelper("99");
+					coverageHelper("58");
 					if (InternalUtils.isClockwiseRing(polygon, i)) {
-						coverageHelper("102");
+						coverageHelper("59");
 						polygon.reversePath(i);
 					} // make counter-clockwise
 					else
-						coverageHelper("103");
+						coverageHelper("60");
 				}
 			}
-			coverageHelper("97");
+			coverageHelper("61");
 
 			polygon.setPathFlagsStreamRef(path_flags_clone);
 		}
-		coverageHelper("87");
+		coverageHelper("62");
 
 		if ((importFlags & (int) WkbImportFlags.wkbImportNonTrusted) == 0) {
-			coverageHelper("104");
+			coverageHelper("63");
 			polygon.setIsSimple(MultiVertexGeometryImpl.GeometryXSimple.Weak,
 					0.0, false);
 		} else
-			coverageHelper("105");
+			coverageHelper("64");
 		polygon.setDirtyOGCFlags(false);
 		wkbHelper.adjustment += offset;
 
