@@ -24,7 +24,7 @@ Choice of functions (and counts by Lizard):
 
 ### Results (Manually counted CC)
 
-1. 107
+1. 130
 2. 49
 3. 82
 4. 81
