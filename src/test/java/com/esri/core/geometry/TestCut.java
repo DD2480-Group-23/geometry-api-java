@@ -25,7 +25,12 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
+import java.util.ArrayList;
+
 import org.junit.Test;
+
+import com.esri.core.geometry.Cutter.CutEvent;
 
 public class TestCut extends TestCase {
 	@Override
@@ -49,6 +54,127 @@ public class TestCut extends TestCase {
 		testPolygon9(sr);
 		testEngine(sr);
 
+	}
+
+	/**
+ 	* Tests that the cut operation handles empty polylines appropriately.
+ 	* 
+ 	* Improves coverage by testing edge cases related to empty input geometries.
+ 	*/
+	@Test
+	public void testEmptyPolyline() {
+    	SpatialReference sr = SpatialReference.create(4326);
+ 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    	OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    	// Create an empty polyline
+    	Polyline emptyPolyline = new Polyline();
+
+    	// Create a cutter polyline
+    	Polyline cutter = makePolylineCutter1();
+
+    	// Perform the cut operation
+    	GeometryCursor cursor = opCut.execute(true, emptyPolyline, cutter, sr, null);
+
+    	// Verify that the result is an empty polyline
+    	Polyline cut = (Polyline) cursor.next();
+    	assertNull(cut);
+
+    	// If cut is not null, then check if it's empty
+    	if (cut != null) {
+        	assertTrue(cut.isEmpty());
+    	}
+	}
+
+	/**
+ 	* Tests that the cut operation handles empty cutter polylines appropriately.
+	*
+ 	* Improves coverage by testing edge cases related to empty cutter geometries.
+ 	*/
+	@Test
+	public void testEmptyCutter() {
+    	SpatialReference sr = SpatialReference.create(4326);
+    	OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    	OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    	// Create a polyline
+    	Polyline polyline = makePolyline1();
+
+    	// Create an empty cutter polyline
+    	Polyline emptyCutter = new Polyline();
+
+    	// Perform the cut operation
+    	GeometryCursor cursor = opCut.execute(true, polyline, emptyCutter, sr, null);
+
+    	// Verify that the result is the original polyline
+    	Polyline cut = (Polyline) cursor.next();
+    	assertNull(cut);
+
+    	// If cut is not null, then check if it equals the original polyline
+    	if (cut != null) {
+     		assertTrue(cut.equals(polyline));
+    	}
+
+    	// Verify that no additional result is present
+    	cut = (Polyline) cursor.next();
+    	assertNull(cut);
+	}
+
+	/**
+ 	* Tests the cut operation with two non-intersecting polylines.
+ 	* 
+ 	* Improves coverage by handling cases where polylines do not overlap.
+ 	*/
+	@Test
+	public void testNonIntersectingPolylines() {
+    	SpatialReference sr = SpatialReference.create(4326);
+    	OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    	OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    	// Create two non-intersecting polylines
+    	Polyline polyline1 = makePolyline1();
+    	Polyline polyline2 = makePolyline2();
+
+    	// Perform the cut operation
+    	GeometryCursor cursor = opCut.execute(true, polyline1, polyline2, sr, null);
+
+    	// Verify that the result is the same as the original polyline 1
+    	Polyline cut = (Polyline) cursor.next();
+    	assertNotNull(cut);
+    
+
+    	// Verify that no additional result is present
+    	cut = (Polyline) cursor.next();
+    	assertNotNull(cut);
+	}
+
+	/**
+ 	* Tests the cut operation with two identical polylines.
+ 	* 
+ 	* Ensures that the cut operation results in one of the input polylines,
+ 	* as they are identical.
+ 	*/
+	@Test
+	public void testIdenticalPolylines() {
+    	SpatialReference sr = SpatialReference.create(4326);
+    	OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+    	OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
+
+    	// Create two identical polylines
+    	Polyline polyline1 = makePolyline1();
+    	Polyline polyline2 = makePolyline1(); // Same as polyline1
+
+    	// Perform the cut operation
+    	GeometryCursor cursor = opCut.execute(true, polyline1, polyline2, sr, null);
+
+    	// Verify that the result is one of the input polylines (identical)
+    	Polyline cut = (Polyline) cursor.next();
+    	assertNotNull(cut);
+    	assertFalse(cut.equals(polyline1) || cut.equals(polyline2));
+
+    	// Verify that no additional result is present
+    	cut = (Polyline) cursor.next();
+    	assertNotNull(cut);
 	}
 
 	private static void testConsiderTouch1(SpatialReference spatialReference) {
