@@ -52,9 +52,10 @@ public class CoverageSummary {
         cs.checkCoverageFromFile("target/temp/coverage__Cut.txt", 130, "_Cut");
         cs.checkCoverageFromFile("target/temp/coverage_geodesic_distance_ngs.txt", 85, "geodesic_distance_ngs");
         cs.checkCoverageFromFile("target/temp/coverage_importFromWkbPolygon.txt", 106, "importFromWkbPolygon");
-        cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68,
-                "tryFastIntersectPolylinePolygon");        
+        cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68, "tryFastIntersectPolylinePolygon");
+        cs.checkCoverageFromFile("target/temp/coverage_intersectionWithAxis2D.txt", 14, "intersectionWithAxis2D");
         cs.checkCoverageFromFile("target/temp/coverage_exportMultiPathToESRIShape.txt", 90, "exportMultiPathToESRIShape.txt");
+        cs.checkCoverageFromFile("target/temp/coverage_getAttributeAsDbl.txt", 8, "getAttributeAsDbl.txt");
     }
 
 }

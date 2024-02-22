@@ -26,6 +26,8 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.Serializable;
 
 import static com.esri.core.geometry.SizeOf.SIZE_OF_POINT;
@@ -235,6 +237,35 @@ public class Point extends Geometry implements Serializable {
 		setAttribute(Semantics.ID, 0, id);
 	}
 
+	static private void coverageHelper(String id){
+		String tempFilePath = "target/temp/coverage_getAttributeAsDbl.txt";
+
+		// Create a File object with the specified path
+ 		File tempFile = new File(tempFilePath);
+
+ 		try {
+ 			// Check if the file exists
+ 			if (!tempFile.exists()) {
+ 				// Create the file if it doesn't exist
+ 				if (tempFile.getParentFile() != null) {
+ 					tempFile.getParentFile().mkdirs(); // Create parent directories if necessary
+ 				}
+ 				tempFile.createNewFile(); // Create the file
+ 				System.out.println("Temporary file created at: " + tempFile.getAbsolutePath());
+ 			}
+ 			FileWriter writer = new FileWriter(tempFile, true);
+ 			// Write the new content to the file
+ 			writer.write(id);
+ 			writer.write(System.lineSeparator()); // Add a newline after the new content
+
+ 			// Close the FileWriter
+ 			writer.close();
+
+ 		} catch (Exception e) {
+ 			System.err.println(e.getMessage());
+ 		}
+	}
+
 	/**
 	 * Returns value of the given vertex attribute's ordinate.
 	 * 
@@ -246,28 +277,39 @@ public class Point extends Geometry implements Serializable {
 	 * @return The ordinate as double value.
 	 */
 	public double getAttributeAsDbl(int semantics, int ordinate) {
+		coverageHelper("0");
 		if (semantics == VertexDescription.Semantics.POSITION) {
+			coverageHelper("1");
 			if (ordinate == 0) {
+				coverageHelper("2");
 				return m_x;
 			}
 			else if (ordinate == 1) {
+				coverageHelper("3");
 				return m_y;
 			}
 			else {
+				coverageHelper("4");
 				throw new IndexOutOfBoundsException();
 			}
 		}
 		
 		int ncomps = VertexDescription.getComponentCount(semantics);
-		if (ordinate >= ncomps)
+		if (ordinate >= ncomps){
+			coverageHelper("5");
 			throw new IndexOutOfBoundsException();
+		}
 
 		int attributeIndex = m_description.getAttributeIndex(semantics);
-		if (attributeIndex >= 0)
+		if (attributeIndex >= 0){
+			coverageHelper("6");
 			return m_attributes[m_description
-					._getPointAttributeOffset(attributeIndex) - 2 + ordinate];
-		else
+			._getPointAttributeOffset(attributeIndex) - 2 + ordinate];
+		}
+		else{
+			coverageHelper("7");
 			return VertexDescription.getDefaultValue(semantics);
+		}
 	}
 
 	/**
