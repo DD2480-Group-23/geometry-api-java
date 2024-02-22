@@ -139,7 +139,7 @@ Report of new coverage: (on feat/improve-test-coverage branch)
 
 | **Function**                  | **Before** | **After** | **Num. tests added** |
 | ----------------------------- | ---------- | --------- | -------------------- |
-| 1                             | 60%        |           |                      |
+| 1                             | 60%        | 64%       | 4                    |
 | 2                             | 34%        | 74%       | 14                   |
 | 3                             | 60%        |           |                      |
 | 4                             | 91%        | -         | -                    |
