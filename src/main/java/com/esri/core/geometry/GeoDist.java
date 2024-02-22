@@ -125,11 +125,150 @@ final class GeoDist {
 				* PE_PI2;
 	}
 
+	static private void checkPointsNotSame(PeDouble p_dist, PeDouble p_az12, PeDouble p_az21) {
+		if (p_dist != null){
+			p_dist.val = 0.0;
+			coverageHelper("4");
+		} else 
+			coverageHelper("5");
+		if (p_az12 != null){
+			p_az12.val = 0.0;
+			coverageHelper("6");
+		} else
+			coverageHelper("7");
+		if (p_az21 != null){
+			p_az21.val = 0.0;
+			coverageHelper("8");
+		} else 
+			coverageHelper("9");
+	}
+
+	private static void antipodalOppositePoles(double a, double e2, PeDouble p_dist, PeDouble p_az12,
+												 PeDouble p_az21, double phi1, double lam2) {
+		if (p_dist != null){
+			p_dist.val = 2.0 * q90(a, e2);
+			coverageHelper("12");
+		} else 
+			coverageHelper("13");
+
+		if (p_az12 != null) {
+			if (phi1 > 0.0) coverageHelper("77");
+			else coverageHelper("78");
+			p_az12.val = phi1 > 0.0 ? lam_delta(PE_PI - lam_delta(lam2))
+			: lam_delta(lam2);
+			coverageHelper("14");
+		} else 
+		coverageHelper("15");
+		
+		if (p_az21 != null){
+			if (phi1 > 0.0) coverageHelper("79");
+			else coverageHelper("80");
+			p_az21.val = phi1 > 0.0 ? lam_delta(lam2) : lam_delta(PE_PI
+					- lam_delta(lam2));
+			coverageHelper("16");
+		} else 
+			coverageHelper("17");
+	}
+
+	private static void antipodalOther(double a, double e2, PeDouble p_dist, PeDouble p_az12, PeDouble p_az21) {
+		if (p_dist != null) {
+			p_dist.val = 2.0 * q90(a, e2);
+			coverageHelper("19");
+		} else 
+			coverageHelper("22");
+		if (p_az12 != null) {
+			p_az12.val = 0.0;
+			coverageHelper("21");
+		} else 
+			coverageHelper("22");
+		if (p_az21 != null) {
+			p_az21.val = 0.0;
+			coverageHelper("23");
+		} else
+			coverageHelper("24");
+	}
+
+
+	private static void convergence(PeDouble p_dist, double ep2, double boa, double bige, double cos2_azeq, 
+									double bigf, double biga, double bigb, double z, double costm, 
+									double sin_sigma, double costm2, double dsigma, double cos_sigma, 
+									double dist, double a, double sigma, PeDouble p_az12, PeDouble p_az21, 
+									int kind, double az12, double sin_azeq, double cos_eta1, double az21, double tem1, 
+									double temp, double tem2, double sin_eta1, double cos_eta2, double sin_lam_sph, 
+									double sin_eta2, double cos_lam_sph) {
+		if (p_dist != null) {
+			coverageHelper("65");
+			/*
+			 * Helmert 1880 from Vincenty's
+			 * "Geodetic inverse solution between antipodal points"
+			 */
+
+			ep2 = 1.0 / (boa * boa) - 1.0;
+			bige = Math.sqrt(1.0 + ep2 * cos2_azeq); /* 15 */
+			bigf = (bige - 1.0) / (bige + 1.0); /* 16 */
+			biga = (1.0 + bigf * bigf / 4.0) / (1.0 - bigf); /* 17 */
+			bigb = bigf * (1.0 - 0.375 * bigf * bigf); /* 18 */
+			z = bigb / 6.0 * costm * (-3.0 + 4.0 * sin_sigma * sin_sigma)
+					* (-3.0 + 4.0 * costm2);
+			dsigma = bigb
+					* sin_sigma
+					* (costm + bigb / 4.0
+							* (cos_sigma * (-1.0 + 2.0 * costm2) - z)); /* 19 */
+			dist = (boa * a) * biga * (sigma - dsigma); /* 20 */
+
+			p_dist.val = dist;
+		} else
+			coverageHelper("66");
+
+		if (p_az12 != null || p_az21 != null) {
+			coverageHelper("67");
+			if (kind == 2) /* antipodal */
+			{
+				coverageHelper("68");
+				az12 = sin_azeq / cos_eta1;
+				az21 = Math.sqrt(1.0 - az12 * az12);
+				if (temp < 0.0) {
+					coverageHelper("69");
+					az21 = -az21;
+				} else 
+					coverageHelper("70");
+				az12 = Math.atan2(az12, az21);
+				tem1 = -sin_azeq;
+				tem2 = sin_eta1 * sin_sigma - cos_eta1 * cos_sigma * az21;
+				az21 = Math.atan2(tem1, tem2);
+			} else /* long-line */
+			{
+				coverageHelper("71");
+				tem1 = cos_eta2 * sin_lam_sph;
+				tem2 = cos_eta1 * sin_eta2 - sin_eta1 * cos_eta2 * cos_lam_sph;
+				az12 = Math.atan2(tem1, tem2);
+				tem1 = -cos_eta1 * sin_lam_sph;
+				tem2 = sin_eta1 * cos_eta2 - cos_eta1 * sin_eta2 * cos_lam_sph;
+				az21 = Math.atan2(tem1, tem2);
+			}
+
+			if (p_az12 != null) {
+				coverageHelper("72");
+				p_az12.val = lam_delta(az12);
+			} else coverageHelper("73");
+			if (p_az21 != null) {
+				coverageHelper("74");
+				p_az21.val = lam_delta(az21);
+			} else coverageHelper("75");
+		} else coverageHelper("76");
+
+	}
+
 	/**
-	 * Cyclomatic complexity:
+	 * Cyclomatic complexity before refactor:
 	 * Decisions: if: 39, &&: 6, ||: 2, ?: 4 , while: 1, for: 0 = 52 
 	 * Exit points: return: 5, Throws: 0, Exceptions: 0
 	 * Total: 52 - 5 + 2 = 49
+	 * 
+	 * Cyclomatic complexity after refactor:
+	 * Decisions:
+	 * Exit points:
+	 * Total: 
 	 */
 	static public void geodesic_distance_ngs(double a, double e2, double lam1,
 			double phi1, double lam2, double phi2, PeDouble p_dist,
@@ -203,22 +342,7 @@ final class GeoDist {
 		if (PE_EQ(phi1, phi2) && (PE_ZERO(dlam) || PE_EQ(PE_ABS(phi1), PE_PI2))) {
 			coverageHelper("3");
 			/* Check that the points are not the same */
-			if (p_dist != null){
-				p_dist.val = 0.0;
-				coverageHelper("4");
-			} else 
-				coverageHelper("5");
-			if (p_az12 != null){
-				p_az12.val = 0.0;
-				coverageHelper("6");
-			} else
-				coverageHelper("7");
-			if (p_az21 != null){
-				p_az21.val = 0.0;
-				coverageHelper("8");
-			} else 
-				coverageHelper("9");
-
+			checkPointsNotSame(p_dist, p_az12, p_az21);
 			return;
 		} else if (PE_EQ(phi1, -phi2)) {
 			coverageHelper("10");
@@ -226,49 +350,12 @@ final class GeoDist {
 			if (PE_EQ(PE_ABS(phi1), PE_PI2)) {
 				coverageHelper("11");
 				/* Check if they are at opposite poles */
-				if (p_dist != null){
-					p_dist.val = 2.0 * q90(a, e2);
-					coverageHelper("12");
-				} else 
-					coverageHelper("13");
-
-				if (p_az12 != null) {
-					if (phi1 > 0.0) coverageHelper("77");
-					else coverageHelper("78");
-					p_az12.val = phi1 > 0.0 ? lam_delta(PE_PI - lam_delta(lam2))
-					: lam_delta(lam2);
-					coverageHelper("14");
-				} else 
-				coverageHelper("15");
-				
-				if (p_az21 != null){
-					if (phi1 > 0.0) coverageHelper("79");
-					else coverageHelper("80");
-					p_az21.val = phi1 > 0.0 ? lam_delta(lam2) : lam_delta(PE_PI
-							- lam_delta(lam2));
-					coverageHelper("16");
-				} else 
-					coverageHelper("17");
-
+				antipodalOppositePoles(a, e2, p_dist, p_az12, p_az21, phi1, lam2);
 				return;
 			} else if (PE_EQ(PE_ABS(dlam), PE_PI)) {
 				coverageHelper("18");
 				/* Other antipodal */
-				if (p_dist != null) {
-					p_dist.val = 2.0 * q90(a, e2);
-					coverageHelper("19");
-				} else 
-					coverageHelper("22");
-				if (p_az12 != null) {
-					p_az12.val = 0.0;
-					coverageHelper("21");
-				} else 
-					coverageHelper("22");
-				if (p_az21 != null) {
-					p_az21.val = 0.0;
-					coverageHelper("23");
-				} else
-					coverageHelper("24");
+				antipodalOther(a, e2, p_dist, p_az12, p_az21);
 				return;
 			} else 
 				coverageHelper("25");
@@ -533,66 +620,9 @@ final class GeoDist {
 		coverageHelper("64");
 
 		/* Convergence */
-
-		if (p_dist != null) {
-			coverageHelper("65");
-			/*
-			 * Helmert 1880 from Vincenty's
-			 * "Geodetic inverse solution between antipodal points"
-			 */
-
-			ep2 = 1.0 / (boa * boa) - 1.0;
-			bige = Math.sqrt(1.0 + ep2 * cos2_azeq); /* 15 */
-			bigf = (bige - 1.0) / (bige + 1.0); /* 16 */
-			biga = (1.0 + bigf * bigf / 4.0) / (1.0 - bigf); /* 17 */
-			bigb = bigf * (1.0 - 0.375 * bigf * bigf); /* 18 */
-			z = bigb / 6.0 * costm * (-3.0 + 4.0 * sin_sigma * sin_sigma)
-					* (-3.0 + 4.0 * costm2);
-			dsigma = bigb
-					* sin_sigma
-					* (costm + bigb / 4.0
-							* (cos_sigma * (-1.0 + 2.0 * costm2) - z)); /* 19 */
-			dist = (boa * a) * biga * (sigma - dsigma); /* 20 */
-
-			p_dist.val = dist;
-		} else
-			coverageHelper("66");
-
-		if (p_az12 != null || p_az21 != null) {
-			coverageHelper("67");
-			if (kind == 2) /* antipodal */
-			{
-				coverageHelper("68");
-				az12 = sin_azeq / cos_eta1;
-				az21 = Math.sqrt(1.0 - az12 * az12);
-				if (temp < 0.0) {
-					coverageHelper("69");
-					az21 = -az21;
-				} else 
-					coverageHelper("70");
-				az12 = Math.atan2(az12, az21);
-				tem1 = -sin_azeq;
-				tem2 = sin_eta1 * sin_sigma - cos_eta1 * cos_sigma * az21;
-				az21 = Math.atan2(tem1, tem2);
-			} else /* long-line */
-			{
-				coverageHelper("71");
-				tem1 = cos_eta2 * sin_lam_sph;
-				tem2 = cos_eta1 * sin_eta2 - sin_eta1 * cos_eta2 * cos_lam_sph;
-				az12 = Math.atan2(tem1, tem2);
-				tem1 = -cos_eta1 * sin_lam_sph;
-				tem2 = sin_eta1 * cos_eta2 - cos_eta1 * sin_eta2 * cos_lam_sph;
-				az21 = Math.atan2(tem1, tem2);
-			}
-
-			if (p_az12 != null) {
-				coverageHelper("72");
-				p_az12.val = lam_delta(az12);
-			} else coverageHelper("73");
-			if (p_az21 != null) {
-				coverageHelper("74");
-				p_az21.val = lam_delta(az21);
-			} else coverageHelper("75");
-		} else coverageHelper("76");
+		convergence(p_dist, ep2, boa, bige, cos2_azeq, bigf, biga, bigb, z, costm, sin_sigma, 
+					costm2, dsigma, cos_sigma, dist, a, sigma, p_az12, p_az21, kind, az12, 
+					sin_azeq, cos_eta1, az21, tem1, temp, tem2, sin_eta1, cos_eta2, sin_lam_sph, 
+					sin_eta2, cos_lam_sph);
 	}
 }
